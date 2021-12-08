@@ -18,7 +18,7 @@ fn main() {
         for i in 0..9 {
             for j in 0..9 {
                 if puzzle[i][j] == 0 {
-                    let possible_values = calc_possible_values(&puzzle, i, j);
+                    let possible_values = get_inverse_values(get_existing_values(&puzzle, i, j));
                     if possible_values.len() == 1 {
                         needs_solving = true;
                         puzzle[i][j] = possible_values[0];
@@ -28,9 +28,9 @@ fn main() {
         }
         if needs_solving {
             total_passes = total_passes + 1;
+            print_puzzle(&puzzle);
         }
     }
-    print_puzzle(&puzzle);
     println!("{} total passes.", total_passes);
 }
 
@@ -69,16 +69,16 @@ fn print_dash_line() {
     println!();
 }
 
-fn calc_possible_values(puzzle: &[[i32; 9]; 9], row: usize, col: usize) -> Vec<i32> {
+pub fn get_existing_values(puzzle: &[[i32; 9]; 9], row: usize, col: usize) -> Vec<i32> {
     let mut values = Vec::new();
     for i in 0..9 {
-        let row_val = puzzle[row][i] - 1;
-        let col_val = puzzle[i][col] - 1;
-        if row_val >= 0 {
-            values.push(row_val + 1);
+        let row_val = puzzle[row][i];
+        let col_val = puzzle[i][col];
+        if row_val >= 1 {
+            values.push(row_val);
         }
-        if col_val >= 0 {
-            values.push(col_val + 1);
+        if col_val >= 1 {
+            values.push(col_val);
         }
     }
 
@@ -107,9 +107,9 @@ fn calc_possible_values(puzzle: &[[i32; 9]; 9], row: usize, col: usize) -> Vec<i
 
     for i in 0..3 {
         for j in 0..3 {
-            let box_val = puzzle[i+row_boundary][j+col_boundary] - 1;
-            if box_val >= 0{
-                values.push(box_val + 1);
+            let box_val = puzzle[i+row_boundary][j+col_boundary];
+            if box_val >= 1{
+                values.push(box_val);
             }
         }
     }
@@ -118,17 +118,21 @@ fn calc_possible_values(puzzle: &[[i32; 9]; 9], row: usize, col: usize) -> Vec<i
     values.sort_unstable();
     values.dedup();
 
+    return values;
+}
+
+pub fn get_inverse_values(values: Vec<i32>) -> Vec<i32>{
     let mut ret_values = Vec::new();
 
-    for i in 0..9 {
+    for i in 1..10 {
         let mut i_found = false;
         for elem in &values {
-            if elem == &(i + 1) {
+            if elem == &(i) {
                 i_found = true;
             }
         }
         if !i_found {
-            ret_values.push(i + 1);
+            ret_values.push(i);
         }
     }
     return ret_values;
