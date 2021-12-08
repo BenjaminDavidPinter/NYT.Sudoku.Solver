@@ -26,7 +26,9 @@ fn main() {
                 }
             }
         }
-        total_passes = total_passes + 1;
+        if needs_solving {
+            total_passes = total_passes + 1;
+        }
     }
     print_puzzle(&puzzle);
     println!("{} total passes.", total_passes);
