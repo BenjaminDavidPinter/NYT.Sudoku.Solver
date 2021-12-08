@@ -10,20 +10,26 @@ fn main() {
         [0, 0, 0, 7, 0, 3, 0, 9, 6],
         [0, 0, 6, 0, 1, 0, 0, 0, 5],
     ];
+    let mut needs_solving = true;
+    let mut total_passes = 0;
     print_puzzle(&puzzle);
-    for x in 0..500 {
+    while needs_solving {
+        needs_solving = false;
         for i in 0..9 {
             for j in 0..9 {
                 if puzzle[i][j] == 0 {
                     let possible_values = calc_possible_values(&puzzle, i, j);
                     if possible_values.len() == 1 {
+                        needs_solving = true;
                         puzzle[i][j] = possible_values[0];
                     }
                 }
             }
         }
+        total_passes = total_passes + 1;
     }
     print_puzzle(&puzzle);
+    println!("{} total passes.", total_passes);
 }
 
 fn print_puzzle(puzzle: &[[i32; 9]; 9]) {
