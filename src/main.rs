@@ -1,27 +1,170 @@
+pub enum Row_Group {
+    ROW_TOP,
+    ROW_MIDDLE,
+    ROW_BOTTOM,
+}
+
+pub enum Col_Group {
+    COL_LEFT,
+    COL_MIDDLE,
+    COL_RIGHT,
+}
+
+#[derive(Default)]
+pub struct SudokuBoard {
+    puzzle: [[i32; 9]; 9],
+    possible_solutions: [[Vec<i32>; 9]; 9],
+}
+
+impl SudokuBoard {
+    pub fn new() -> SudokuBoard {
+        SudokuBoard::default()
+    }
+
+    pub fn get_puzzle_row(&self, box_coord: (i32, i32), row: Row_Group) -> (i32, i32, i32) {
+        let row_offset = match row {
+            Row_Group::ROW_TOP => 0,
+            Row_Group::ROW_MIDDLE => 1,
+            Row_Group::ROW_BOTTOM => 2,
+        };
+
+        let natural_boundaries =
+            get_boundaries_for_cell((box_coord.0 * 3) as usize, (box_coord.1 * 3) as usize);
+        let x = natural_boundaries.0 + row_offset;
+        return (
+            self.puzzle[x][natural_boundaries.1],
+            self.puzzle[x][natural_boundaries.1 + 1],
+            self.puzzle[x][natural_boundaries.1 + 2],
+        );
+    }
+
+    pub fn get_puzzle_col(&self, box_coord: (i32, i32), col: Col_Group) -> (i32, i32, i32) {
+        let col_offset = match col {
+            Col_Group::COL_LEFT => 0,
+            Col_Group::COL_MIDDLE => 1,
+            Col_Group::COL_RIGHT => 2,
+        };
+
+        let natural_boundaries =
+            get_boundaries_for_cell((box_coord.0 * 3) as usize, (box_coord.1 * 3) as usize);
+        let y = natural_boundaries.1 + col_offset;
+        return (
+            self.puzzle[natural_boundaries.0][y],
+            self.puzzle[natural_boundaries.0 + 1][y],
+            self.puzzle[natural_boundaries.1 + 2][y],
+        );
+    }
+
+    pub fn get_solution_row(
+        &self,
+        box_coord: (i32, i32),
+        row: Row_Group,
+    ) -> (&Vec<i32>, &Vec<i32>, &Vec<i32>) {
+        let row_offset = match row {
+            Row_Group::ROW_TOP => 0,
+            Row_Group::ROW_MIDDLE => 1,
+            Row_Group::ROW_BOTTOM => 2,
+        };
+
+        let natural_boundaries =
+            get_boundaries_for_cell((box_coord.0 * 3) as usize, (box_coord.1 * 3) as usize);
+        let x = natural_boundaries.0 + row_offset;
+        return (
+            &self.possible_solutions[x][natural_boundaries.1],
+            &self.possible_solutions[x][natural_boundaries.1 + 1],
+            &self.possible_solutions[x][natural_boundaries.1 + 2],
+        );
+    }
+
+    pub fn get_solution_col(
+        &self,
+        box_coord: (i32, i32),
+        col: Col_Group,
+    ) -> (&Vec<i32>, &Vec<i32>, &Vec<i32>) {
+        let col_offset = match col {
+            Col_Group::COL_LEFT => 0,
+            Col_Group::COL_MIDDLE => 1,
+            Col_Group::COL_RIGHT => 2,
+        };
+
+        let natural_boundaries =
+            get_boundaries_for_cell((box_coord.0 * 3) as usize, (box_coord.1 * 3) as usize);
+        let y = natural_boundaries.1 + col_offset;
+        return (
+            &self.possible_solutions[natural_boundaries.0][y],
+            &self.possible_solutions[natural_boundaries.0 + 1][y],
+            &self.possible_solutions[natural_boundaries.1 + 2][y],
+        );
+    }
+}
+
 fn main() {
     let mut puzzle: [[i32; 9]; 9] = [
-        [0, 0, 2, 0, 0, 0, 0, 8, 4],
-        [0, 0, 1, 6, 0, 0, 0, 0, 7],
-        [5, 4, 9, 8, 2, 7, 0, 1, 3],
-        [0, 1, 5, 0, 0, 0, 3, 7, 8],
-        [7, 0, 3, 0, 0, 5, 4, 0, 9],
-        [9, 2, 0, 0, 0, 0, 5, 0, 0],
-        [1, 5, 0, 4, 0, 0, 0, 0, 2],
-        [0, 0, 0, 7, 0, 3, 0, 9, 6],
-        [0, 0, 6, 0, 1, 0, 0, 0, 5],
+        [0, 0, 4, 0, 0, 0, 6, 0, 0],
+        [2, 7, 0, 0, 0, 0, 0, 9, 0],
+        [0, 0, 0, 2, 8, 0, 0, 0, 0],
+        [0, 0, 6, 0, 9, 0, 1, 7, 0],
+        [4, 0, 0, 0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 7, 2, 0, 0, 4],
+        [0, 8, 0, 3, 0, 4, 0, 0, 0],
+        [9, 5, 0, 0, 0, 0, 0, 8, 0],
+        [0, 0, 0, 0, 1, 0, 0, 0, 0],
     ];
+
+    let mut possible_values: [[Vec<i32>; 9]; 9];
     let mut needs_solving = true;
     let mut total_passes = 0;
+    //Calculate all the valid values for each square, using basic Row/Column/Square rules.
     print_puzzle(&puzzle);
     while needs_solving {
+        possible_values = Default::default();
         needs_solving = false;
         for i in 0..9 {
             for j in 0..9 {
                 if puzzle[i][j] == 0 {
-                    let possible_values = get_inverse_values(get_existing_values(&puzzle, i, j));
-                    if possible_values.len() == 1 {
+                    possible_values[i][j] = get_inverse_values(get_existing_values(&puzzle, i, j));
+                } else {
+                    possible_values[i][j] = Default::default();
+                }
+            }
+        }
+
+        //Enumerate the board, applying 2 types of searches;
+        //Search 1; Check cell for single valid value
+        //Search 2: Check cell for only instance of value in box
+        //Search 3: TODO: Check for only-valid columns and boxes and rule out other boxes by that
+        for i in 0..9 {
+            for j in 0..9 {
+                if puzzle[i][j] == 0 {
+                    println!("Working on box; {},{}", i, j);
+                    println!(
+                        "\tPossible values for this box\n\t\t{:?}",
+                        possible_values[i][j]
+                    );
+
+                    if possible_values[i][j].len() == 1 {
+                        println!(
+                            "\tSingle value found, filling in with [{}]",
+                            possible_values[i][j][0]
+                        );
                         needs_solving = true;
-                        puzzle[i][j] = possible_values[0];
+                        puzzle[i][j] = possible_values[i][j][0];
+                    } else {
+                        println!("\tMultiple values found, attempting contextual search...");
+                        let possible_values_contextual: Vec<i32> =
+                            get_contextual_values(&possible_values, i, j);
+                        println!(
+                            "\t\tContextual results\n\t\t\t{:?}",
+                            possible_values_contextual
+                        );
+                        if possible_values_contextual.len() == 1 {
+                            needs_solving = true;
+                            println!(
+                                "\tSingle value found, filling in with [{}]",
+                                possible_values_contextual[0]
+                            );
+                            puzzle[i][j] = possible_values_contextual[0];
+                        }
                     }
                 }
             }
@@ -31,6 +174,7 @@ fn main() {
             print_puzzle(&puzzle);
         }
     }
+    print_puzzle(&puzzle);
     println!("{} total passes.", total_passes);
 }
 
@@ -82,38 +226,16 @@ pub fn get_existing_values(puzzle: &[[i32; 9]; 9], row: usize, col: usize) -> Ve
         }
     }
 
-    let mut row_boundary: usize = 0;
-    let mut col_boundary: usize = 0;
-
-    if row < 3 {
-        row_boundary = 0;
-    }
-    if row >= 3 && row < 6 {
-        row_boundary = 3;
-    }
-    if row >= 6  {
-        row_boundary = 6;
-    }
-
-    if col < 3 {
-        col_boundary = 0;
-    }
-    if col >= 3 && col < 6 {
-        col_boundary = 3;
-    }
-    if col >= 6  {
-        col_boundary = 6;
-    }
+    let xy_boundary = get_boundaries_for_cell(row, col);
 
     for i in 0..3 {
         for j in 0..3 {
-            let box_val = puzzle[i+row_boundary][j+col_boundary];
-            if box_val >= 1{
+            let box_val = puzzle[i + xy_boundary.0][j + xy_boundary.1];
+            if box_val >= 1 {
                 values.push(box_val);
             }
         }
     }
-
 
     values.sort_unstable();
     values.dedup();
@@ -121,7 +243,7 @@ pub fn get_existing_values(puzzle: &[[i32; 9]; 9], row: usize, col: usize) -> Ve
     return values;
 }
 
-pub fn get_inverse_values(values: Vec<i32>) -> Vec<i32>{
+pub fn get_inverse_values(values: Vec<i32>) -> Vec<i32> {
     let mut ret_values = Vec::new();
 
     for i in 1..10 {
@@ -136,4 +258,265 @@ pub fn get_inverse_values(values: Vec<i32>) -> Vec<i32>{
         }
     }
     return ret_values;
+}
+
+pub fn get_contextual_values(
+    possible_values: &[[Vec<i32>; 9]; 9],
+    row: usize,
+    col: usize,
+) -> Vec<i32> {
+    let mut ret_vals: Vec<i32> = Default::default();
+
+    let xy_boundary = get_boundaries_for_cell(row, col);
+    println!("\tBox boundary {},{}", xy_boundary.0, xy_boundary.1);
+
+    for elem in &possible_values[row][col] {
+        println!("\t\t{} : ", &elem);
+        let mut valid_value = true;
+        for i in 0..3 {
+            for j in 0..3 {
+                let box_vals = &possible_values[i + xy_boundary.0][j + xy_boundary.1];
+                println!(
+                    "\t\t\t{}, {} Valid Values: {:?}",
+                    i + xy_boundary.0,
+                    j + xy_boundary.1,
+                    box_vals
+                );
+                if box_vals.contains(&elem)
+                    && !(i + xy_boundary.0 == row && j + xy_boundary.1 == col)
+                {
+                    println!("\t\t\tFound in {},{}", i + xy_boundary.0, j + xy_boundary.1);
+                    valid_value = false;
+                }
+                if !valid_value {
+                    break;
+                }
+            }
+            if !valid_value {
+                break;
+            }
+        }
+        if valid_value {
+            println!(" Not found, adding");
+            ret_vals.push(*elem);
+        }
+    }
+
+    ret_vals
+}
+
+pub fn get_boundaries_for_cell(row: usize, col: usize) -> (usize, usize) {
+    let mut row_boundary: usize = 0;
+    let mut col_boundary: usize = 0;
+
+    if row < 3 {
+        row_boundary = 0;
+    }
+    if row >= 3 && row < 6 {
+        row_boundary = 3;
+    }
+    if row >= 6 {
+        row_boundary = 6;
+    }
+
+    if col < 3 {
+        col_boundary = 0;
+    }
+    if col >= 3 && col < 6 {
+        col_boundary = 3;
+    }
+    if col >= 6 {
+        col_boundary = 6;
+    }
+
+    return (row_boundary, col_boundary);
+}
+
+#[test]
+fn test_top_row_00() {
+    let mut board: SudokuBoard = SudokuBoard::new();
+    board.puzzle = [
+        [0, 0, 4, 0, 0, 0, 6, 0, 0],
+        [2, 7, 0, 0, 0, 0, 0, 9, 0],
+        [0, 0, 0, 2, 8, 0, 0, 0, 0],
+        [0, 0, 6, 0, 9, 0, 1, 7, 0],
+        [4, 0, 0, 0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 7, 2, 0, 0, 4],
+        [0, 8, 0, 3, 0, 4, 0, 0, 0],
+        [9, 5, 0, 0, 0, 0, 0, 8, 0],
+        [0, 0, 0, 0, 1, 0, 0, 0, 0],
+    ];
+
+    let test_row = board.get_puzzle_row((0, 0), Row_Group::ROW_TOP);
+    assert_eq!(test_row.0, 0);
+    assert_eq!(test_row.1, 0);
+    assert_eq!(test_row.2, 4);
+}
+
+#[test]
+fn test_mid_row_00() {
+    let mut board: SudokuBoard = SudokuBoard::new();
+    board.puzzle = [
+        [0, 0, 4, 0, 0, 0, 6, 0, 0],
+        [2, 7, 0, 0, 0, 0, 0, 9, 0],
+        [0, 0, 0, 2, 8, 0, 0, 0, 0],
+        [0, 0, 6, 0, 9, 0, 1, 7, 0],
+        [4, 0, 0, 0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 7, 2, 0, 0, 4],
+        [0, 8, 0, 3, 0, 4, 0, 0, 0],
+        [9, 5, 0, 0, 0, 0, 0, 8, 0],
+        [0, 0, 0, 0, 1, 0, 0, 0, 0],
+    ];
+
+    let test_row = board.get_puzzle_row((0, 0), Row_Group::ROW_MIDDLE);
+    assert_eq!(test_row.0, 2);
+    assert_eq!(test_row.1, 7);
+    assert_eq!(test_row.2, 0);
+}
+
+#[test]
+fn test_bot_row_00() {
+    let mut board: SudokuBoard = SudokuBoard::new();
+    board.puzzle = [
+        [0, 0, 4, 0, 0, 0, 6, 0, 0],
+        [2, 7, 0, 0, 0, 0, 0, 9, 0],
+        [1, 2, 3, 2, 8, 0, 0, 0, 0],
+        [0, 0, 6, 0, 9, 0, 1, 7, 0],
+        [4, 0, 0, 0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 7, 2, 0, 0, 4],
+        [0, 8, 0, 3, 0, 4, 0, 0, 0],
+        [9, 5, 0, 0, 0, 0, 0, 8, 0],
+        [0, 0, 0, 0, 1, 0, 0, 0, 0],
+    ];
+
+    let test_row = board.get_puzzle_row((0, 0), Row_Group::ROW_BOTTOM);
+    assert_eq!(test_row.0, 1);
+    assert_eq!(test_row.1, 2);
+    assert_eq!(test_row.2, 3);
+}
+
+#[test]
+fn test_top_row_11() {
+    let mut board: SudokuBoard = SudokuBoard::new();
+    board.puzzle = [
+        [0, 0, 4, 0, 0, 0, 6, 0, 0],
+        [2, 7, 0, 0, 0, 0, 0, 9, 0],
+        [0, 0, 0, 2, 8, 0, 0, 0, 0],
+        [0, 0, 6, 0, 9, 0, 1, 7, 0],
+        [4, 0, 0, 0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 7, 2, 0, 0, 4],
+        [0, 8, 0, 3, 0, 4, 0, 0, 0],
+        [9, 5, 0, 0, 0, 0, 0, 8, 0],
+        [0, 0, 0, 0, 1, 0, 0, 0, 0],
+    ];
+
+    let test_row = board.get_puzzle_row((1, 1), Row_Group::ROW_TOP);
+    assert_eq!(test_row.0, 0);
+    assert_eq!(test_row.1, 9);
+    assert_eq!(test_row.2, 0);
+}
+
+#[test]
+fn test_mid_row_11() {
+    let mut board: SudokuBoard = SudokuBoard::new();
+    board.puzzle = [
+        [0, 0, 4, 0, 0, 0, 6, 0, 0],
+        [2, 7, 0, 0, 0, 0, 0, 9, 0],
+        [0, 0, 0, 2, 8, 0, 0, 0, 0],
+        [0, 0, 6, 0, 9, 0, 1, 7, 0],
+        [4, 0, 0, 0, 5, 0, 0, 0, 0],
+        [0, 0, 0, 0, 7, 2, 0, 0, 4],
+        [0, 8, 0, 3, 0, 4, 0, 0, 0],
+        [9, 5, 0, 0, 0, 0, 0, 8, 0],
+        [0, 0, 0, 0, 1, 0, 0, 0, 0],
+    ];
+
+    let test_row = board.get_puzzle_row((1, 1), Row_Group::ROW_MIDDLE);
+    assert_eq!(test_row.0, 0);
+    assert_eq!(test_row.1, 5);
+    assert_eq!(test_row.2, 0);
+}
+
+#[test]
+fn test_bot_row_11() {
+    let mut board: SudokuBoard = SudokuBoard::new();
+    board.puzzle = [
+        [0, 0, 4, 0, 0, 0, 6, 0, 0],
+        [2, 7, 0, 0, 0, 0, 0, 9, 0],
+        [1, 2, 3, 2, 8, 0, 0, 0, 0],
+        [0, 0, 6, 0, 9, 0, 1, 7, 0],
+        [4, 0, 0, 0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 7, 2, 0, 0, 4],
+        [0, 8, 0, 3, 0, 4, 0, 0, 0],
+        [9, 5, 0, 0, 0, 0, 0, 8, 0],
+        [0, 0, 0, 0, 1, 0, 0, 0, 0],
+    ];
+
+    let test_row = board.get_puzzle_row((1, 1), Row_Group::ROW_BOTTOM);
+    assert_eq!(test_row.0, 0);
+    assert_eq!(test_row.1, 7);
+    assert_eq!(test_row.2, 2);
+}
+
+#[test]
+fn test_top_row_22() {
+    let mut board: SudokuBoard = SudokuBoard::new();
+    board.puzzle = [
+        [0, 0, 4, 0, 0, 0, 6, 0, 0],
+        [2, 7, 0, 0, 0, 0, 0, 9, 0],
+        [0, 0, 0, 2, 8, 0, 0, 0, 0],
+        [0, 0, 6, 0, 9, 0, 1, 7, 0],
+        [4, 0, 0, 0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 7, 2, 0, 0, 4],
+        [0, 8, 0, 3, 0, 4, 1, 2, 3],
+        [9, 5, 0, 0, 0, 0, 0, 8, 0],
+        [0, 0, 0, 0, 1, 0, 0, 0, 0],
+    ];
+
+    let test_row = board.get_puzzle_row((2,2), Row_Group::ROW_TOP);
+    assert_eq!(test_row.0, 1);
+    assert_eq!(test_row.1, 2);
+    assert_eq!(test_row.2, 3);
+}
+
+#[test]
+fn test_mid_row_22() {
+    let mut board: SudokuBoard = SudokuBoard::new();
+    board.puzzle = [
+        [0, 0, 4, 0, 0, 0, 6, 0, 0],
+        [2, 7, 0, 0, 0, 0, 0, 9, 0],
+        [0, 0, 0, 2, 8, 0, 0, 0, 0],
+        [0, 0, 6, 0, 9, 0, 1, 7, 0],
+        [4, 0, 0, 0, 5, 0, 0, 0, 0],
+        [0, 0, 0, 0, 7, 2, 0, 0, 4],
+        [0, 8, 0, 3, 0, 4, 0, 0, 0],
+        [9, 5, 0, 0, 0, 0, 0, 8, 0],
+        [0, 0, 0, 0, 1, 0, 0, 0, 0],
+    ];
+
+    let test_row = board.get_puzzle_row((2,2), Row_Group::ROW_MIDDLE);
+    assert_eq!(test_row.0, 0);
+    assert_eq!(test_row.1, 8);
+    assert_eq!(test_row.2, 0);
+}
+
+#[test]
+fn test_bot_row_22() {
+    let mut board: SudokuBoard = SudokuBoard::new();
+    board.puzzle = [
+        [0, 0, 4, 0, 0, 0, 6, 0, 0],
+        [2, 7, 0, 0, 0, 0, 0, 9, 0],
+        [1, 2, 3, 2, 8, 0, 0, 0, 0],
+        [0, 0, 6, 0, 9, 0, 1, 7, 0],
+        [4, 0, 0, 0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 7, 2, 0, 0, 4],
+        [0, 8, 0, 3, 0, 4, 0, 0, 0],
+        [9, 5, 0, 0, 0, 0, 0, 8, 0],
+        [0, 0, 0, 0, 1, 0, 0, 5, 0],
+    ];
+
+    let test_row = board.get_puzzle_row((2,2), Row_Group::ROW_BOTTOM);
+    assert_eq!(test_row.0, 0);
+    assert_eq!(test_row.1, 5);
+    assert_eq!(test_row.2, 0);
 }
