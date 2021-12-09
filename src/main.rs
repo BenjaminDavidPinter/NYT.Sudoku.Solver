@@ -1,14 +1,4 @@
-pub enum Row_Group {
-    ROW_TOP,
-    ROW_MIDDLE,
-    ROW_BOTTOM,
-}
-
-pub enum Col_Group {
-    COL_LEFT,
-    COL_MIDDLE,
-    COL_RIGHT,
-}
+mod box_access;
 
 #[derive(Default)]
 pub struct SudokuBoard {
@@ -21,11 +11,11 @@ impl SudokuBoard {
         SudokuBoard::default()
     }
 
-    pub fn get_puzzle_row(&self, box_coord: (i32, i32), row: Row_Group) -> (i32, i32, i32) {
+    pub fn get_puzzle_row(&self, box_coord: (i32, i32), row: box_access::RowGroup) -> (i32, i32, i32) {
         let row_offset = match row {
-            Row_Group::ROW_TOP => 0,
-            Row_Group::ROW_MIDDLE => 1,
-            Row_Group::ROW_BOTTOM => 2,
+            box_access::RowGroup::RowTop => 0,
+            box_access::RowGroup::RowMiddle => 1,
+            box_access::RowGroup::RowBottom => 2,
         };
 
         let natural_boundaries =
@@ -38,11 +28,11 @@ impl SudokuBoard {
         );
     }
 
-    pub fn get_puzzle_col(&self, box_coord: (i32, i32), col: Col_Group) -> (i32, i32, i32) {
+    pub fn get_puzzle_col(&self, box_coord: (i32, i32), col: box_access::ColGroup) -> (i32, i32, i32) {
         let col_offset = match col {
-            Col_Group::COL_LEFT => 0,
-            Col_Group::COL_MIDDLE => 1,
-            Col_Group::COL_RIGHT => 2,
+            box_access::ColGroup::ColLeft => 0,
+            box_access::ColGroup::ColMiddle => 1,
+            box_access::ColGroup::ColRight => 2,
         };
 
         let natural_boundaries =
@@ -58,12 +48,12 @@ impl SudokuBoard {
     pub fn get_solution_row(
         &self,
         box_coord: (i32, i32),
-        row: Row_Group,
+        row: box_access::RowGroup,
     ) -> (&Vec<i32>, &Vec<i32>, &Vec<i32>) {
         let row_offset = match row {
-            Row_Group::ROW_TOP => 0,
-            Row_Group::ROW_MIDDLE => 1,
-            Row_Group::ROW_BOTTOM => 2,
+            box_access::RowGroup::RowTop => 0,
+            box_access::RowGroup::RowMiddle => 1,
+            box_access::RowGroup::RowBottom => 2,
         };
 
         let natural_boundaries =
@@ -79,12 +69,12 @@ impl SudokuBoard {
     pub fn get_solution_col(
         &self,
         box_coord: (i32, i32),
-        col: Col_Group,
+        col: box_access::ColGroup,
     ) -> (&Vec<i32>, &Vec<i32>, &Vec<i32>) {
         let col_offset = match col {
-            Col_Group::COL_LEFT => 0,
-            Col_Group::COL_MIDDLE => 1,
-            Col_Group::COL_RIGHT => 2,
+            box_access::ColGroup::ColLeft => 0,
+            box_access::ColGroup::ColMiddle => 1,
+            box_access::ColGroup::ColRight => 2,
         };
 
         let natural_boundaries =
@@ -347,7 +337,7 @@ fn test_top_row_00() {
         [0, 0, 0, 0, 1, 0, 0, 0, 0],
     ];
 
-    let test_row = board.get_puzzle_row((0, 0), Row_Group::ROW_TOP);
+    let test_row = board.get_puzzle_row((0, 0), box_access::RowGroup::RowTop);
     assert_eq!(test_row.0, 0);
     assert_eq!(test_row.1, 0);
     assert_eq!(test_row.2, 4);
@@ -368,7 +358,7 @@ fn test_mid_row_00() {
         [0, 0, 0, 0, 1, 0, 0, 0, 0],
     ];
 
-    let test_row = board.get_puzzle_row((0, 0), Row_Group::ROW_MIDDLE);
+    let test_row = board.get_puzzle_row((0, 0), box_access::RowGroup::RowMiddle);
     assert_eq!(test_row.0, 2);
     assert_eq!(test_row.1, 7);
     assert_eq!(test_row.2, 0);
@@ -389,7 +379,7 @@ fn test_bot_row_00() {
         [0, 0, 0, 0, 1, 0, 0, 0, 0],
     ];
 
-    let test_row = board.get_puzzle_row((0, 0), Row_Group::ROW_BOTTOM);
+    let test_row = board.get_puzzle_row((0, 0), box_access::RowGroup::RowBottom);
     assert_eq!(test_row.0, 1);
     assert_eq!(test_row.1, 2);
     assert_eq!(test_row.2, 3);
@@ -410,7 +400,7 @@ fn test_top_row_11() {
         [0, 0, 0, 0, 1, 0, 0, 0, 0],
     ];
 
-    let test_row = board.get_puzzle_row((1, 1), Row_Group::ROW_TOP);
+    let test_row = board.get_puzzle_row((1, 1), box_access::RowGroup::RowTop);
     assert_eq!(test_row.0, 0);
     assert_eq!(test_row.1, 9);
     assert_eq!(test_row.2, 0);
@@ -431,7 +421,7 @@ fn test_mid_row_11() {
         [0, 0, 0, 0, 1, 0, 0, 0, 0],
     ];
 
-    let test_row = board.get_puzzle_row((1, 1), Row_Group::ROW_MIDDLE);
+    let test_row = board.get_puzzle_row((1, 1), box_access::RowGroup::RowMiddle);
     assert_eq!(test_row.0, 0);
     assert_eq!(test_row.1, 5);
     assert_eq!(test_row.2, 0);
@@ -452,7 +442,7 @@ fn test_bot_row_11() {
         [0, 0, 0, 0, 1, 0, 0, 0, 0],
     ];
 
-    let test_row = board.get_puzzle_row((1, 1), Row_Group::ROW_BOTTOM);
+    let test_row = board.get_puzzle_row((1, 1), box_access::RowGroup::RowBottom);
     assert_eq!(test_row.0, 0);
     assert_eq!(test_row.1, 7);
     assert_eq!(test_row.2, 2);
@@ -473,7 +463,7 @@ fn test_top_row_22() {
         [0, 0, 0, 0, 1, 0, 0, 0, 0],
     ];
 
-    let test_row = board.get_puzzle_row((2,2), Row_Group::ROW_TOP);
+    let test_row = board.get_puzzle_row((2,2), box_access::RowGroup::RowTop);
     assert_eq!(test_row.0, 1);
     assert_eq!(test_row.1, 2);
     assert_eq!(test_row.2, 3);
@@ -494,7 +484,7 @@ fn test_mid_row_22() {
         [0, 0, 0, 0, 1, 0, 0, 0, 0],
     ];
 
-    let test_row = board.get_puzzle_row((2,2), Row_Group::ROW_MIDDLE);
+    let test_row = board.get_puzzle_row((2,2), box_access::RowGroup::RowMiddle);
     assert_eq!(test_row.0, 0);
     assert_eq!(test_row.1, 8);
     assert_eq!(test_row.2, 0);
@@ -515,7 +505,7 @@ fn test_bot_row_22() {
         [0, 0, 0, 0, 1, 0, 0, 5, 0],
     ];
 
-    let test_row = board.get_puzzle_row((2,2), Row_Group::ROW_BOTTOM);
+    let test_row = board.get_puzzle_row((2,2), box_access::RowGroup::RowBottom);
     assert_eq!(test_row.0, 0);
     assert_eq!(test_row.1, 5);
     assert_eq!(test_row.2, 0);
@@ -545,7 +535,7 @@ fn test_top_row_00_solution_access() {
         }
     }
     
-    let test_row = board.get_solution_row((0,0), Row_Group::ROW_TOP);
+    let test_row = board.get_solution_row((0,0), box_access::RowGroup::RowTop);
     assert_eq!(test_row.0.len(), 0);
     assert_eq!(test_row.1.len(), 8);
     assert_eq!(test_row.2.len(), 8);
