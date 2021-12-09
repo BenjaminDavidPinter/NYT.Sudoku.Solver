@@ -520,3 +520,33 @@ fn test_bot_row_22() {
     assert_eq!(test_row.1, 5);
     assert_eq!(test_row.2, 0);
 }
+
+#[test]
+fn test_top_row_00_solution_access() {
+    let mut board: SudokuBoard = SudokuBoard::new();
+    board.puzzle = [
+        [1, 0, 0, 0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0, 0, 0, 0],
+    ];
+    for i in 0..9 {
+        for j in 0..9 {
+            if board.puzzle[i][j] == 0 {
+                board.possible_solutions[i][j] = get_inverse_values(get_existing_values(&board.puzzle, i, j));
+            } else {
+                board.possible_solutions[i][j] = Default::default();
+            }
+        }
+    }
+    
+    let test_row = board.get_solution_row((0,0), Row_Group::ROW_TOP);
+    assert_eq!(test_row.0.len(), 0);
+    assert_eq!(test_row.1.len(), 8);
+    assert_eq!(test_row.2.len(), 8);
+}
