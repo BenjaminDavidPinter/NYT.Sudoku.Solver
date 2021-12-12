@@ -22,6 +22,13 @@ impl SudokuBoard {
         SudokuBoard::default()
     }
 
+    pub fn from_puzzle(puzzle: [[i32; 9]; 9]) -> SudokuBoard{
+        let mut new_board = SudokuBoard::new();
+        new_board.puzzle = puzzle;
+        new_board.possible_solutions = SudokuBoard::calc_possible_solutions(&new_board);
+        new_board
+    }
+
     pub fn calc_possible_solutions(board: &SudokuBoard) -> [[Vec<i32>; 9]; 9]{
         let mut ret_value: [[Vec<i32>; 9]; 9] = Default::default();
         for i in 0..9 {
@@ -278,9 +285,9 @@ impl SudokuBoard {
 
     pub fn remove_possible_value_from_cell(board:&SudokuBoard, possible_value: i32, col: usize, row: usize) -> Vec<i32>{
         let mut new_vec:Vec<i32> = Default::default();
-        for value in &board.possible_solutions[row][col] {
-            if(*value != possible_value){
-                new_vec.push(*value);
+        for value in 0..9 {
+            if board.possible_solutions[row][col].contains(&value) && value != possible_value {
+                new_vec.push(value);
             }
         }
 
@@ -482,15 +489,15 @@ fn test_bot_row_22() {
 fn test_top_row_00_solution_access() {
     let mut board: SudokuBoard = SudokuBoard::new();
     board.puzzle = [
-        [1, 0, 0, 0, 0, 0, 0, 0, 0],
-        [0, 0, 0, 0, 0, 0, 0, 0, 0],
-        [0, 0, 0, 0, 0, 0, 0, 0, 0],
-        [0, 0, 0, 0, 0, 0, 0, 0, 0],
-        [0, 0, 0, 0, 0, 0, 0, 0, 0],
-        [0, 0, 0, 0, 0, 0, 0, 0, 0],
-        [0, 0, 0, 0, 0, 0, 0, 0, 0],
-        [0, 0, 0, 0, 0, 0, 0, 0, 0],
-        [0, 0, 0, 0, 0, 0, 0, 0, 0],
+        [0, 0, 4, 0, 0, 0, 6, 0, 0],
+        [2, 7, 0, 0, 0, 0, 0, 9, 0],
+        [0, 0, 0, 2, 8, 0, 0, 0, 0],
+        [0, 0, 6, 0, 9, 0, 1, 7, 0],
+        [4, 0, 0, 0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 7, 2, 0, 0, 4],
+        [0, 8, 0, 3, 0, 4, 0, 0, 0],
+        [9, 5, 0, 0, 0, 0, 0, 8, 0],
+        [0, 0, 0, 0, 1, 0, 0, 0, 0],
     ];
     for i in 0..9 {
         for j in 0..9 {
@@ -504,7 +511,33 @@ fn test_top_row_00_solution_access() {
     }
 
     let test_row = board.get_solution_row((0, 0), RowGroup::RowTop);
-    assert_eq!(test_row[0].len(), 0);
-    assert_eq!(test_row[1].len(), 8);
-    assert_eq!(test_row[2].len(), 8);
+    assert_eq!(test_row[0].len(), 4);
+    assert_eq!(test_row[1].len(), 3);
+    assert_eq!(test_row[2].len(), 0);
+}
+
+#[test]
+fn test_removal_from_cell() {
+    let mut board: SudokuBoard = SudokuBoard::from_puzzle([
+        [0, 0, 4, 0, 0, 0, 6, 0, 0],
+        [2, 7, 0, 0, 0, 0, 0, 9, 0],
+        [0, 0, 0, 2, 8, 0, 0, 0, 0],
+        [0, 0, 6, 0, 9, 0, 1, 7, 0],
+        [4, 0, 0, 0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 7, 2, 0, 0, 4],
+        [0, 8, 0, 3, 0, 4, 0, 0, 0],
+        [9, 5, 0, 0, 0, 0, 0, 8, 0],
+        [0, 0, 0, 0, 1, 0, 0, 0, 0],
+    ]);
+
+    assert_eq!(board.possible_solutions[0][0].contains(&1), true);
+    assert_eq!(board.possible_solutions[0][0].contains(&3), true);
+    assert_eq!(board.possible_solutions[0][0].contains(&5), true);
+    assert_eq!(board.possible_solutions[0][0].contains(&8), true);
+
+    board.possible_solutions[0][0] = SudokuBoard::remove_possible_value_from_cell(&board, 1, 0, 0);
+    assert_eq!(board.possible_solutions[0][0].contains(&1), false);
+    assert_eq!(board.possible_solutions[0][0].contains(&3), true);
+    assert_eq!(board.possible_solutions[0][0].contains(&5), true);
+    assert_eq!(board.possible_solutions[0][0].contains(&8), true);
 }
