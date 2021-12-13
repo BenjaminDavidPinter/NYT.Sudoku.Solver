@@ -57,12 +57,17 @@ fn main() {
                             );
                             s_board.puzzle[i][j] = possible_values_contextual[0];
                         } else {
+                            println!("\tNo valid context values found, performing single-row/single-column exclusive possible value search");
                             let mut vec_exclusive_values: Vec<i32> = Default::default();
                             //Get exlcusive values for rows 1/2/3 and columns 1/2/3, 6 total, per cube, 9 total cubes
                             //9*6 total runs, or 54 total
                             for cube_x in 0..3 {
                                 //3 wide
                                 for cube_y in 0..3 {
+                                    println!(
+                                        "\t\tPerforming search on cube {}, {}",
+                                        cube_x, cube_y
+                                    );
                                     //3 high
                                     let top_row = Sudoku::SudokuBoard::get_solution_row(
                                         &s_board,
@@ -80,23 +85,48 @@ fn main() {
                                         Sudoku::RowGroup::RowBottom,
                                     );
 
+                                    println!(
+                                        "\t\t\t{:?}\n\t\t\t{:?}\n\t\t\t{:?}",
+                                        top_row, middle_row, bottom_row
+                                    );
+
                                     let mut found_in_cube = false;
                                     for cell in top_row {
+                                        found_in_cube = false;
                                         for possible_value in cell {
+                                            println!("\t\t{}: ", possible_value);
                                             let possible_value = *possible_value as i32;
                                             for m_cell in &middle_row {
                                                 if m_cell.contains(&possible_value) {
                                                     found_in_cube = true;
+                                                    println!("\t\t\tFound in middle row");
                                                 }
+                                                if found_in_cube {
+                                                    break;
+                                                }
+                                            }
+                                            if found_in_cube {
+                                                found_in_cube = false;
+                                                continue;
                                             }
                                             for b_cell in &bottom_row {
                                                 if b_cell.contains(&possible_value) {
                                                     found_in_cube = true;
+                                                    println!("\t\t\tFound in bottom row");
+                                                }
+                                                if found_in_cube {
+                                                    break;
                                                 }
                                             }
                                             if !found_in_cube {
                                                 //Top row contains a value that is only valid in the top row
                                                 //  remove this value from other top rows in the puzzle
+                                                println!("Found {} in row TOP of cube {},{}, but not in rest of cube. This value can be removed from adjacent rows",
+                                                         possible_value,
+                                                         cube_x,
+                                                         cube_y);
+                                            }else {
+                                                found_in_cube = false;
                                             }
                                         }
                                     }
