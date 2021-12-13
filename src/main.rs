@@ -96,7 +96,7 @@ fn main() {
                                             }
                                             if !found_in_cube {
                                                 //Top row contains a value that is only valid in the top row
-                                                //  remove this value from other top rows in the puzzle                                             
+                                                //  remove this value from other top rows in the puzzle
                                             }
                                         }
                                     }

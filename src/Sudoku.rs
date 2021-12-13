@@ -14,7 +14,7 @@ pub enum ColGroup {
 pub struct SudokuBoard {
     pub puzzle: [[i32; 9]; 9],
     pub possible_solutions: [[Vec<i32>; 9]; 9],
-    pub needs_solving: bool
+    pub needs_solving: bool,
 }
 
 impl SudokuBoard {
@@ -22,19 +22,21 @@ impl SudokuBoard {
         SudokuBoard::default()
     }
 
-    pub fn from_puzzle(puzzle: [[i32; 9]; 9]) -> SudokuBoard{
+    pub fn from_puzzle(puzzle: [[i32; 9]; 9]) -> SudokuBoard {
         let mut new_board = SudokuBoard::new();
         new_board.puzzle = puzzle;
         new_board.possible_solutions = SudokuBoard::calc_possible_solutions(&new_board);
         new_board
     }
 
-    pub fn calc_possible_solutions(board: &SudokuBoard) -> [[Vec<i32>; 9]; 9]{
+    pub fn calc_possible_solutions(board: &SudokuBoard) -> [[Vec<i32>; 9]; 9] {
         let mut ret_value: [[Vec<i32>; 9]; 9] = Default::default();
         for i in 0..9 {
             for j in 0..9 {
                 if board.puzzle[i][j] == 0 {
-                    ret_value[i][j] = SudokuBoard::get_inverse_values(SudokuBoard::get_existing_values(&board.puzzle, i, j));
+                    ret_value[i][j] = SudokuBoard::get_inverse_values(
+                        SudokuBoard::get_existing_values(&board.puzzle, i, j),
+                    );
                 } else {
                     ret_value[i][j] = Default::default();
                 }
@@ -85,11 +87,7 @@ impl SudokuBoard {
         );
     }
 
-    pub fn get_solution_row(
-        &self,
-        box_coord: (i32, i32),
-        row: RowGroup,
-    ) -> Vec<&Vec<i32>>{
+    pub fn get_solution_row(&self, box_coord: (i32, i32), row: RowGroup) -> Vec<&Vec<i32>> {
         let row_offset = match row {
             RowGroup::RowTop => 0,
             RowGroup::RowMiddle => 1,
@@ -105,7 +103,7 @@ impl SudokuBoard {
         ret_vec.push(&self.possible_solutions[x][natural_boundaries.1]);
         ret_vec.push(&self.possible_solutions[x][natural_boundaries.1 + 1]);
         ret_vec.push(&self.possible_solutions[x][natural_boundaries.1 + 2]);
-        
+
         ret_vec
     }
 
@@ -166,14 +164,14 @@ impl SudokuBoard {
                 if item % 3 == 0 {
                     print!("| ");
                 }
-    
+
                 let cell_value = puzzle[row][item];
                 if cell_value == 0 {
                     print!("  ");
                 } else {
                     print!("{} ", puzzle[row][item]);
                 }
-    
+
                 if item == arr_size - 1 {
                     println!("|")
                 }
@@ -190,7 +188,7 @@ impl SudokuBoard {
         }
         println!();
     }
-    
+
     pub fn get_existing_values(puzzle: &[[i32; 9]; 9], row: usize, col: usize) -> Vec<i32> {
         let mut values = Vec::new();
         for i in 0..9 {
@@ -203,9 +201,9 @@ impl SudokuBoard {
                 values.push(col_val);
             }
         }
-    
+
         let xy_boundary = SudokuBoard::get_boundaries_for_cell(row, col);
-    
+
         for i in 0..3 {
             for j in 0..3 {
                 let box_val = puzzle[i + xy_boundary.0][j + xy_boundary.1];
@@ -214,16 +212,16 @@ impl SudokuBoard {
                 }
             }
         }
-    
+
         values.sort_unstable();
         values.dedup();
-    
+
         return values;
     }
-    
+
     pub fn get_inverse_values(values: Vec<i32>) -> Vec<i32> {
         let mut ret_values = Vec::new();
-    
+
         for i in 1..10 {
             let mut i_found = false;
             for elem in &values {
@@ -237,17 +235,17 @@ impl SudokuBoard {
         }
         return ret_values;
     }
-    
+
     pub fn get_box_values(
         possible_values: &[[Vec<i32>; 9]; 9],
         row: usize,
         col: usize,
     ) -> Vec<i32> {
         let mut ret_vals: Vec<i32> = Default::default();
-    
+
         let xy_boundary = SudokuBoard::get_boundaries_for_cell(row, col);
         println!("\tBox boundary {},{}", xy_boundary.0, xy_boundary.1);
-    
+
         for elem in &possible_values[row][col] {
             println!("\t\t{} : ", &elem);
             let mut valid_value = true;
@@ -279,12 +277,17 @@ impl SudokuBoard {
                 ret_vals.push(*elem);
             }
         }
-    
+
         ret_vals
     }
 
-    pub fn remove_possible_value_from_cell(board:&SudokuBoard, possible_value: i32, col: usize, row: usize) -> Vec<i32>{
-        let mut new_vec:Vec<i32> = Default::default();
+    pub fn remove_possible_value_from_cell(
+        board: &SudokuBoard,
+        possible_value: i32,
+        col: usize,
+        row: usize,
+    ) -> Vec<i32> {
+        let mut new_vec: Vec<i32> = Default::default();
         for value in 0..9 {
             if board.possible_solutions[row][col].contains(&value) && value != possible_value {
                 new_vec.push(value);
@@ -294,7 +297,6 @@ impl SudokuBoard {
         new_vec
     }
 }
-
 
 #[test]
 pub fn test_top_row_00() {
@@ -311,7 +313,7 @@ pub fn test_top_row_00() {
         [0, 0, 0, 0, 1, 0, 0, 0, 0],
     ];
 
-    let test_row = SudokuBoard::get_puzzle_row(&board ,(0, 0), RowGroup::RowTop);
+    let test_row = SudokuBoard::get_puzzle_row(&board, (0, 0), RowGroup::RowTop);
     assert_eq!(test_row.0, 0);
     assert_eq!(test_row.1, 0);
     assert_eq!(test_row.2, 4);
@@ -502,8 +504,9 @@ fn test_top_row_00_solution_access() {
     for i in 0..9 {
         for j in 0..9 {
             if board.puzzle[i][j] == 0 {
-                board.possible_solutions[i][j] =
-                    SudokuBoard::get_inverse_values(SudokuBoard::get_existing_values(&board.puzzle, i, j));
+                board.possible_solutions[i][j] = SudokuBoard::get_inverse_values(
+                    SudokuBoard::get_existing_values(&board.puzzle, i, j),
+                );
             } else {
                 board.possible_solutions[i][j] = Default::default();
             }
