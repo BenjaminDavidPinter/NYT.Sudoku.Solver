@@ -56,87 +56,202 @@ fn main() {
                                 possible_values_contextual[0]
                             );
                             s_board.puzzle[i][j] = possible_values_contextual[0];
-                        } else {
-                            println!("\tNo valid context values found, performing single-row/single-column exclusive possible value search");
-                            let mut vec_exclusive_values: Vec<i32> = Default::default();
-                            //Get exlcusive values for rows 1/2/3 and columns 1/2/3, 6 total, per cube, 9 total cubes
-                            //9*6 total runs, or 54 total
-                            for cube_x in 0..3 {
-                                //3 wide
-                                for cube_y in 0..3 {
-                                    println!(
-                                        "\t\tPerforming search on cube {}, {}",
-                                        cube_x, cube_y
-                                    );
-                                    //3 high
-                                    let top_row = Sudoku::SudokuBoard::get_solution_row(
-                                        &s_board,
-                                        (cube_x, cube_y),
-                                        Sudoku::RowGroup::RowTop,
-                                    );
-                                    let middle_row = Sudoku::SudokuBoard::get_solution_row(
-                                        &s_board,
-                                        (cube_x, cube_y),
-                                        Sudoku::RowGroup::RowMiddle,
-                                    );
-                                    let bottom_row = Sudoku::SudokuBoard::get_solution_row(
-                                        &s_board,
-                                        (cube_x, cube_y),
-                                        Sudoku::RowGroup::RowBottom,
-                                    );
-
-                                    println!(
-                                        "\t\t\t{:?}\n\t\t\t{:?}\n\t\t\t{:?}",
-                                        top_row, middle_row, bottom_row
-                                    );
-
-                                    let mut found_in_cube = false;
-                                    for cell in top_row {
-                                        found_in_cube = false;
-                                        for possible_value in cell {
-                                            println!("\t\t{}: ", possible_value);
-                                            let possible_value = *possible_value as i32;
-                                            for m_cell in &middle_row {
-                                                if m_cell.contains(&possible_value) {
-                                                    found_in_cube = true;
-                                                    println!("\t\t\tFound in middle row");
-                                                }
-                                                if found_in_cube {
-                                                    break;
-                                                }
-                                            }
-                                            if found_in_cube {
-                                                found_in_cube = false;
-                                                continue;
-                                            }
-                                            for b_cell in &bottom_row {
-                                                if b_cell.contains(&possible_value) {
-                                                    found_in_cube = true;
-                                                    println!("\t\t\tFound in bottom row");
-                                                }
-                                                if found_in_cube {
-                                                    break;
-                                                }
-                                            }
-                                            if !found_in_cube {
-                                                //Top row contains a value that is only valid in the top row
-                                                //  remove this value from other top rows in the puzzle
-                                                println!("Found {} in row TOP of cube {},{}, but not in rest of cube. This value can be removed from adjacent rows",
-                                                         possible_value,
-                                                         cube_x,
-                                                         cube_y);
-                                            }else {
-                                                found_in_cube = false;
-                                            }
-                                        }
-                                    }
-                                }
-                            }
                         }
                     }
                 }
             }
         }
+
+        println!("\tNo valid context values found, performing single-row/single-column exclusive possible value search");
+        //Get exlcusive values for rows 1/2/3 and columns 1/2/3, 6 total, per cube, 9 total cubes
+        //9*6 total runs, or 54 total
+        let mut top_removable_values: Vec<(usize, usize, i32)> = Default::default();
+        let mut mid_removable_values: Vec<(usize, usize, i32)> = Default::default();
+        let mut bot_removable_values: Vec<(usize, usize, i32)> = Default::default();
+        for cube_x in 0..3 {
+            //3 wide
+            for cube_y in 0..3 {
+                println!("\t\tPerforming search on cube {}, {}", cube_x, cube_y);
+                //3 high
+                let top_row = Sudoku::SudokuBoard::get_solution_row(
+                    &s_board,
+                    (cube_x, cube_y),
+                    Sudoku::RowGroup::RowTop,
+                );
+                let middle_row = Sudoku::SudokuBoard::get_solution_row(
+                    &s_board,
+                    (cube_x, cube_y),
+                    Sudoku::RowGroup::RowMiddle,
+                );
+                let bottom_row = Sudoku::SudokuBoard::get_solution_row(
+                    &s_board,
+                    (cube_x, cube_y),
+                    Sudoku::RowGroup::RowBottom,
+                );
+
+                println!(
+                    "\t\t\t{:?}\n\t\t\t{:?}\n\t\t\t{:?}",
+                    top_row, middle_row, bottom_row
+                );
+
+                //Top Row
+
+                let mut top_found_in_cube;
+                let mut t_row: Vec<&i32> = top_row.into_iter().flatten().collect();
+                t_row.sort_unstable();
+                t_row.dedup();
+                for possible_value in &t_row {
+                    top_found_in_cube = false;
+                    let possible_value = **possible_value as i32;
+                    for cell_index in 0..3 {
+                        if middle_row[cell_index].contains(&possible_value)
+                            || bottom_row[cell_index].contains(&possible_value)
+                        {
+                            top_found_in_cube = true;
+                            break;
+                        }
+                    }
+                    if !top_found_in_cube {
+                        //Top row contains a value that is only valid in the top row
+                        //  remove this value from other top rows in the puzzle
+                        println!("\t\t{}: ", possible_value);
+                        println!("\t\t\tFound {} in row TOP of cube {},{}, but not in rest of cube. This value can be removed from adjacent rows",
+                                                         possible_value,
+                                                         cube_x,
+                                                         cube_y);
+                        for i in 0..9 {
+                            let x = (cube_x * 3) as usize;
+                            let end_y = ((cube_y * 3) + 3) as usize;
+                            let start_y = ((cube_y * 3)) as usize;
+                            if (i >= 0 && i < start_y) || (i >= end_y && i <= 8) {
+                                bot_removable_values.push((
+                                    x as usize,
+                                    i as usize,
+                                    possible_value,
+                                ));
+                            }
+                        }
+                    } else {
+                        top_found_in_cube = false;
+                    }
+                }
+
+                //Mid row
+
+                let mut mid_found_in_cube;
+                let mut m_row: Vec<&i32> = middle_row.into_iter().flatten().collect();
+                m_row.sort_unstable();
+                m_row.dedup();
+                for possible_value in &m_row {
+                    mid_found_in_cube = false;
+                    let possible_value = **possible_value as i32;
+                    for cell_index in 0..3 {
+                        if t_row.contains(&&possible_value)
+                            || bottom_row[cell_index].contains(&possible_value)
+                        {
+                            mid_found_in_cube = true;
+                            break;
+                        }
+                    }
+                    if !mid_found_in_cube {
+                        //Top row contains a value that is only valid in the top row
+                        //  remove this value from other top rows in the puzzle
+                        println!("\t\t{}: ", possible_value);
+                        println!("\t\t\tFound {} in row MID of cube {},{}, but not in rest of cube. This value can be removed from adjacent rows",
+                                                         possible_value,
+                                                         cube_x,
+                                                         cube_y);
+                        for i in 0..9 {
+                            let x = ((cube_x * 3) + 1) as usize;
+                            let end_y = ((cube_y * 3) + 3) as usize;
+                            let start_y = ((cube_y * 3)) as usize;
+                            if (i >= 0 && i < start_y) || (i >= end_y && i <= 8) {
+                                bot_removable_values.push((
+                                    x as usize,
+                                    i as usize,
+                                    possible_value,
+                                ));
+                            }
+                        }
+                    } else {
+                        mid_found_in_cube = false;
+                    }
+                }
+
+                //Bot row
+
+                let mut bot_found_in_cube;
+                let mut b_row: Vec<&i32> = bottom_row.into_iter().flatten().collect();
+                b_row.sort_unstable();
+                b_row.dedup();
+                for possible_value in &b_row {
+                    bot_found_in_cube = false;
+                    let possible_value = **possible_value as i32;
+                    for cell_index in 0..3 {
+                        if t_row.contains(&&possible_value)
+                            || m_row.contains(&&possible_value)
+                        {
+                            bot_found_in_cube = true;
+                            break;
+                        }
+                    }
+                    if !bot_found_in_cube {
+                        //Top row contains a value that is only valid in the top row
+                        //  remove this value from other top rows in the puzzle
+                        println!("\t\t{}: ", possible_value);
+                        println!("\t\t\tFound {} in row BOT of cube {},{}, but not in rest of cube. This value can be removed from adjacent rows",
+                                                         possible_value,
+                                                         cube_x,
+                                                         cube_y);
+                        for i in 0..9 {
+                            let x = ((cube_x * 3) + 2) as usize;
+                            let end_y = ((cube_y * 3) + 3) as usize;
+                            let start_y = ((cube_y * 3)) as usize;
+                            if (i >= 0 && i < start_y) || (i >= end_y && i <= 8) {
+                                bot_removable_values.push((
+                                    x as usize,
+                                    i as usize,
+                                    possible_value,
+                                ));
+                            }
+                        }
+                    } else {
+                        bot_found_in_cube = false;
+                    }
+                }
+            }
+        }
+        println!("\t\tRemoving possible values from rows where exclusion limits them;");
+        for i in 0..top_removable_values.len() {
+            s_board.possible_solutions[top_removable_values[i].0][top_removable_values[i].1] =
+                Sudoku::SudokuBoard::remove_possible_value_from_cell(
+                    &s_board,
+                    top_removable_values[i].2,
+                    top_removable_values[i].0,
+                    top_removable_values[i].1,
+                );
+        }
+
+        for i in 0..mid_removable_values.len() {
+            s_board.possible_solutions[mid_removable_values[i].0][mid_removable_values[i].1] =
+                Sudoku::SudokuBoard::remove_possible_value_from_cell(
+                    &s_board,
+                    mid_removable_values[i].2,
+                    mid_removable_values[i].0,
+                    mid_removable_values[i].1,
+                );
+        }
+
+        for i in 0..bot_removable_values.len() {
+            s_board.possible_solutions[bot_removable_values[i].0][bot_removable_values[i].1] =
+                Sudoku::SudokuBoard::remove_possible_value_from_cell(
+                    &s_board,
+                    bot_removable_values[i].2,
+                    bot_removable_values[i].0,
+                    bot_removable_values[i].1,
+                );
+        }
+
         if s_board.needs_solving {
             total_passes = total_passes + 1;
             Sudoku::SudokuBoard::print_puzzle(&s_board.puzzle);

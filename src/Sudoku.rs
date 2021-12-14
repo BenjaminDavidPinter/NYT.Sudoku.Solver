@@ -284,8 +284,8 @@ impl SudokuBoard {
     pub fn remove_possible_value_from_cell(
         board: &SudokuBoard,
         possible_value: i32,
-        col: usize,
         row: usize,
+        col: usize,
     ) -> Vec<i32> {
         let mut new_vec: Vec<i32> = Default::default();
         for value in 0..9 {
