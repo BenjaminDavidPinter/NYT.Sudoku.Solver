@@ -70,25 +70,6 @@ impl SudokuBoard {
         );
     }
 
-    pub fn get_puzzle_col(&self, box_coord: (i32, i32), col: ColGroup) -> (i32, i32, i32) {
-        let col_offset = match col {
-            ColGroup::ColLeft => 0,
-            ColGroup::ColMiddle => 1,
-            ColGroup::ColRight => 2,
-        };
-
-        let natural_boundaries = SudokuBoard::get_boundaries_for_cell(
-            (box_coord.0 * 3) as usize,
-            (box_coord.1 * 3) as usize,
-        );
-        let y = natural_boundaries.1 + col_offset;
-        return (
-            self.puzzle[natural_boundaries.0][y],
-            self.puzzle[natural_boundaries.0 + 1][y],
-            self.puzzle[natural_boundaries.1 + 2][y],
-        );
-    }
-
     pub fn get_solution_row(&self, box_coord: (i32, i32), row: RowGroup) -> Vec<&Vec<i32>> {
         let row_offset = match row {
             RowGroup::RowTop => 0,
@@ -243,24 +224,15 @@ impl SudokuBoard {
         let mut ret_vals: Vec<i32> = Default::default();
 
         let xy_boundary = SudokuBoard::get_boundaries_for_cell(row, col);
-        //println!("\tBox boundary {},{}", xy_boundary.0, xy_boundary.1);
 
         for elem in &possible_values[row][col] {
-            //println!("\t\t{} : ", &elem);
             let mut valid_value = true;
             for i in 0..3 {
                 for j in 0..3 {
                     let box_vals = &possible_values[i + xy_boundary.0][j + xy_boundary.1];
-                    //println!(
-                    //"\t\t\t{}, {} Valid Values: {:?}",
-                    //i + xy_boundary.0,
-                    // j + xy_boundary.1,
-                    // box_vals
-                    //);
                     if box_vals.contains(&elem)
                         && !(i + xy_boundary.0 == row && j + xy_boundary.1 == col)
                     {
-                        //println!("\t\t\tFound in {},{}", i + xy_boundary.0, j + xy_boundary.1);
                         valid_value = false;
                     }
                     if !valid_value {
@@ -272,7 +244,6 @@ impl SudokuBoard {
                 }
             }
             if valid_value {
-                //println!(" Not found, adding");
                 ret_vals.push(*elem);
             }
         }
@@ -298,20 +269,13 @@ impl SudokuBoard {
 
     pub fn solve_deterministic(s_board: &mut SudokuBoard) {
         let mut total_passes = 0;
-        //Calculate all the valid values for each square, using basic Row/Column/Square rules.
         s_board.needs_solving = true;
         while s_board.needs_solving {
             s_board.needs_solving = false;
             s_board.possible_solutions = SudokuBoard::calc_possible_solutions(&s_board);
-            //println!("\tPerforming single-row/single-column exclusive possible value search");
-            //Get exlcusive values for rows 1/2/3 and columns 1/2/3, 6 total, per cube, 9 total cubes
-            //9*6 total runs, or 54 total
             let mut removable_vals: Vec<(usize, usize, i32)> = Default::default();
             for cube_x in 0..3 {
-                //3 wide
                 for cube_y in 0..3 {
-                    //println!("\t\tPerforming search on cube {}, {}", cube_x, cube_y);
-                    //3 high
                     let top_row =
                         SudokuBoard::get_solution_row(&s_board, (cube_x, cube_y), RowGroup::RowTop);
                     let middle_row = SudokuBoard::get_solution_row(
@@ -339,11 +303,7 @@ impl SudokuBoard {
                         (cube_x, cube_y),
                         ColGroup::ColRight,
                     );
-                    //println!(
-                    //"\t\t\t{:?}\n\t\t\t{:?}\n\t\t\t{:?}",
-                    // top_row, middle_row, bottom_row
-                    //);
-                    //Top Row
+
                     let mut top_found_in_cube;
                     let mut t_row: Vec<&i32> = top_row.into_iter().flatten().collect();
                     t_row.sort_unstable();
@@ -360,23 +320,14 @@ impl SudokuBoard {
                             }
                         }
                         if !top_found_in_cube {
-                            //Top row contains a value that is only valid in the top row
-                            //  remove this value from other top rows in the puzzle
-                            //println!("\t\t{}: ", possible_value);
-                            //println!("\t\t\tFound {} in row TOP of cube {},{}, but not in rest of cube. This value can be removed from adjacent rows",
-                            //                             possible_value,
-                            //                              cube_x,
-                            //                               cube_y);
                             for i in 0..9 {
                                 let x = (cube_x * 3) as usize;
                                 let end_y = ((cube_y * 3) + 3) as usize;
                                 let start_y = (cube_y * 3) as usize;
-                                if (i >= 0 && i < start_y) || (i >= end_y && i <= 8) {
+                                if (i > 0 && i < start_y) || (i >= end_y && i <= 8) {
                                     removable_vals.push((x as usize, i as usize, possible_value));
                                 }
                             }
-                        } else {
-                            top_found_in_cube = false;
                         }
                     }
                     //Mid row
@@ -396,23 +347,14 @@ impl SudokuBoard {
                             }
                         }
                         if !mid_found_in_cube {
-                            //Top row contains a value that is only valid in the top row
-                            //  remove this value from other top rows in the puzzle
-                            //println!("\t\t{}: ", possible_value);
-                            //println!("\t\t\tFound {} in row MID of cube {},{}, but not in rest of cube. This value can be removed from adjacent rows",
-                            //                                 possible_value,
-                            //                                cube_x,
-                            //                                cube_y);
                             for i in 0..9 {
                                 let x = ((cube_x * 3) + 1) as usize;
                                 let end_y = ((cube_y * 3) + 3) as usize;
                                 let start_y = (cube_y * 3) as usize;
-                                if (i >= 0 && i < start_y) || (i >= end_y && i <= 8) {
+                                if (i > 0 && i < start_y) || (i >= end_y && i <= 8) {
                                     removable_vals.push((x as usize, i as usize, possible_value));
                                 }
                             }
-                        } else {
-                            mid_found_in_cube = false;
                         }
                     }
                     //Bot row
@@ -423,7 +365,7 @@ impl SudokuBoard {
                     for possible_value in &b_row {
                         bot_found_in_cube = false;
                         let possible_value = **possible_value as i32;
-                        for cell_index in 0..3 {
+                        for _cell_index in 0..3 {
                             if t_row.contains(&&possible_value) || m_row.contains(&&possible_value)
                             {
                                 bot_found_in_cube = true;
@@ -431,23 +373,14 @@ impl SudokuBoard {
                             }
                         }
                         if !bot_found_in_cube {
-                            //Top row contains a value that is only valid in the top row
-                            //  remove this value from other top rows in the puzzle
-                            //println!("\t\t{}: ", possible_value);
-                            //println!("\t\t\tFound {} in row BOT of cube {},{}, but not in rest of cube. This value can be removed from adjacent rows",
-                            //                                possible_value,
-                            //                                cube_x,
-                            //                                cube_y);
                             for i in 0..9 {
                                 let x = ((cube_x * 3) + 2) as usize;
                                 let end_y = ((cube_y * 3) + 3) as usize;
                                 let start_y = (cube_y * 3) as usize;
-                                if (i >= 0 && i < start_y) || (i >= end_y && i <= 8) {
+                                if (i > 0 && i < start_y) || (i >= end_y && i <= 8) {
                                     removable_vals.push((x as usize, i as usize, possible_value));
                                 }
                             }
-                        } else {
-                            bot_found_in_cube = false;
                         }
                     }
                     //left col
@@ -467,23 +400,14 @@ impl SudokuBoard {
                             }
                         }
                         if !left_found_in_cube {
-                            //Top row contains a value that is only valid in the top row
-                            //  remove this value from other top rows in the puzzle
-                            //println!("\t\t{}: ", possible_value);
-                            //println!("\t\t\tFound {} in col LEFT of cube {},{}, but not in rest of cube. This value can be removed from adjacent rows",
-                            //                                possible_value,
-                            //                                cube_x,
-                            //                                cube_y);
                             for i in 0..9 {
                                 let y = (cube_y * 3) as usize;
                                 let end_x = ((cube_x * 3) + 3) as usize;
                                 let start_x = (cube_x * 3) as usize;
-                                if (i >= 0 && i < start_x) || (i >= end_x && i <= 8) {
+                                if (i > 0 && i < start_x) || (i >= end_x && i <= 8) {
                                     removable_vals.push((i as usize, y as usize, possible_value));
                                 }
                             }
-                        } else {
-                            left_found_in_cube = false;
                         }
                     }
                     //right col
@@ -503,26 +427,14 @@ impl SudokuBoard {
                             }
                         }
                         if !right_found_in_cube {
-                            //Top row contains a value that is only valid in the top row
-                            //  remove this value from other top rows in the puzzle
-                            //println!("\t\t{}: ", possible_value);
-                            //println!("\t\t\tFound {} in col RIGHT of cube {},{}, but not in rest of cube. This value can be removed from adjacent rows",
-                            //                               possible_value,
-                            //                               cube_x,
-                            //                                cube_y);
-                            //cube_x = 1
-                            //cube_y = 0
-                            //y == 2
                             for i in 0..9 {
                                 let y = ((cube_y * 3) + 2) as usize;
                                 let end_x = ((cube_x * 3) + 3) as usize;
                                 let start_x = (cube_x * 3) as usize;
-                                if (i >= 0 && i < start_x) || (i >= end_x && i <= 8) {
+                                if (i > 0 && i < start_x) || (i >= end_x && i <= 8) {
                                     removable_vals.push((i as usize, y as usize, possible_value));
                                 }
                             }
-                        } else {
-                            right_found_in_cube = false;
                         }
                     }
                     //mid col
@@ -533,7 +445,7 @@ impl SudokuBoard {
                     for possible_value in &m_col {
                         let possible_value = **possible_value;
                         midc_found_in_cube = false;
-                        for cell_index in 0..3 {
+                        for _cell_index in 0..3 {
                             if l_col.contains(&&possible_value) || r_col.contains(&&possible_value)
                             {
                                 midc_found_in_cube = true;
@@ -541,36 +453,20 @@ impl SudokuBoard {
                             }
                         }
                         if !midc_found_in_cube {
-                            //Top row contains a value that is only valid in the top row
-                            //  remove this value from other top rows in the puzzle
-                            //println!("\t\t{}: ", possible_value);
-                            //println!("\t\t\tFound {} in col MID of cube {},{}, but not in rest of cube. This value can be removed from adjacent rows",
-                            //                               possible_value,
-                            //                                cube_x,
-                            //                                cube_y);
-                            //cube_x = 1
-                            //cube_y = 0
-                            //y == 2
                             for i in 0..9 {
                                 let y = ((cube_y * 3) + 1) as usize;
                                 let end_x = ((cube_x * 3) + 3) as usize;
                                 let start_x = (cube_x * 3) as usize;
-                                if (i >= 0 && i < start_x) || (i >= end_x && i <= 8) {
+                                if (i > 0 && i < start_x) || (i >= end_x && i <= 8) {
                                     removable_vals.push((i as usize, y as usize, possible_value));
                                 }
                             }
-                        } else {
-                            midc_found_in_cube = false;
                         }
                     }
                 }
             }
-            //println!("\t\tRemoving possible values from rows where exclusion limits them;");
+
             for i in 0..removable_vals.len() {
-                //println!(
-                // "\t\t\tRemoving {} from {},{}",
-                //  removable_vals[i].2, removable_vals[i].0, removable_vals[i].1
-                //);
                 s_board.possible_solutions[removable_vals[i].0][removable_vals[i].1] =
                     SudokuBoard::remove_possible_value_from_cell(
                         &s_board,
@@ -579,39 +475,18 @@ impl SudokuBoard {
                         removable_vals[i].1,
                     );
             }
-            //Enumerate the board, applying 2 types of searches;
-            //Search 1; Check cell for single valid value
-            //Search 2: Check cell for only instance of value in box
-            //Search 3: TODO: Check for only-valid columns and boxes and rule out other boxes by that
+
             for i in 0..9 {
                 for j in 0..9 {
                     if s_board.puzzle[i][j] == 0 {
-                        //println!("Working on box; {},{}", i, j);
-                        //println!(
-                        // "\tPossible values for this box\n\t\t{:?}",
-                        //   s_board.possible_solutions[i][j]
-                        //);
                         if s_board.possible_solutions[i][j].len() == 1 {
-                            //println!(
-                            //  "\tSingle value found, filling in with [{}]",
-                            //  s_board.possible_solutions[i][j][0]
-                            //);
                             s_board.needs_solving = true;
                             s_board.puzzle[i][j] = s_board.possible_solutions[i][j][0];
                         } else {
-                            //println!("\tMultiple values found, attempting contextual search...");
                             let possible_values_contextual: Vec<i32> =
                                 SudokuBoard::get_box_values(&s_board.possible_solutions, i, j);
-                            //println!(
-                            // "\t\tContextual results\n\t\t\t{:?}",
-                            // possible_values_contextual
-                            //);
                             if possible_values_contextual.len() == 1 {
                                 s_board.needs_solving = true;
-                                //println!(
-                                //  "\tSingle value found, filling in with [{}]",
-                                //    possible_values_contextual[0]
-                                //);
                                 s_board.puzzle[i][j] = possible_values_contextual[0];
                             }
                         }
@@ -629,18 +504,15 @@ impl SudokuBoard {
         greedy_number: i32,
         greed_level: usize,
     ) -> SudokuBoard {
-        let mut solved = false;
         for i in 0..9 {
             for j in 0..9 {
                 if s_board.possible_solutions[i][j].len() <= greed_level
-                    && !solved
                     && s_board.possible_solutions[i][j].contains(&greedy_number)
                 {
                     let mut test_board = s_board.clone();
                     test_board.puzzle[i][j] = greedy_number;
                     SudokuBoard::solve_deterministic(&mut test_board);
                     if SudokuBoard::populated(&test_board) {
-                        solved = true;
                         return test_board;
                     }
                 }
@@ -657,10 +529,89 @@ impl SudokuBoard {
         }
         return true;
     }
+
+    pub fn validate_board(board: &SudokuBoard) -> bool {
+        return SudokuBoard::validate_rows(board)
+            && SudokuBoard::validate_columns(board)
+            && SudokuBoard::validate_boxes(board);
+    }
+
+    fn validate_rows(board: &SudokuBoard) -> bool {
+        //Rows will be easy;
+        for i in 0..9 {
+            let mut row_validation: [bool; 9] = [
+                false, false, false, false, false, false, false, false, false,
+            ];
+            for j in 0..9 {
+                let indexer = (board.puzzle[i][j] - 1) as usize;
+                if !row_validation[indexer] {
+                    row_validation[indexer] = true;
+                } else {
+                    return false;
+                }
+            }
+        }
+
+        true
+    }
+
+    fn validate_columns(board: &SudokuBoard) -> bool {
+        for i in 0..9 {
+            let mut col_validation: [bool; 9] = [
+                false, false, false, false, false, false, false, false, false,
+            ];
+            for j in 0..9 {
+                let indexer = (board.puzzle[j][i] - 1) as usize;
+                if !col_validation[indexer] {
+                    col_validation[indexer] = true;
+                } else {
+                    return false;
+                }
+            }
+        }
+
+        true
+    }
+
+    fn validate_boxes(board: &SudokuBoard) -> bool {
+        for i in 0..3 {
+            for j in 0..3 {
+                let mut cube: Vec<i32> = Default::default();
+                let top_row = SudokuBoard::get_puzzle_row(board, (i, j), RowGroup::RowTop);
+                let mid_row = SudokuBoard::get_puzzle_row(board, (i, j), RowGroup::RowMiddle);
+                let bot_row = SudokuBoard::get_puzzle_row(board, (i, j), RowGroup::RowBottom);
+
+                cube.push(top_row.0);
+                cube.push(top_row.1);
+                cube.push(top_row.2);
+                cube.push(mid_row.0);
+                cube.push(mid_row.1);
+                cube.push(mid_row.2);
+                cube.push(bot_row.0);
+                cube.push(bot_row.1);
+                cube.push(bot_row.2);
+
+                for i in 0..9 {
+                    let mut cube_validation: [bool; 9] = [
+                        false, false, false, false, false, false, false, false, false,
+                    ];
+
+                    let indexer = (cube[i] - 1) as usize;
+                    if !cube_validation[indexer] {
+                        cube_validation[indexer] = true;
+                    } else {
+                        return false;
+                    }
+                }
+            }
+        }
+
+        true
+    }
 }
 
 #[test]
-pub fn test_top_row_00() {
+pub fn test_top_row_puzzle_access() {
     let mut board: SudokuBoard = SudokuBoard::new();
     board.puzzle = [
         [0, 0, 4, 0, 0, 0, 6, 0, 0],
@@ -681,7 +632,7 @@ pub fn test_top_row_00() {
 }
 
 #[test]
-pub fn test_mid_row_00() {
+pub fn test_mid_row_puzzle_access() {
     let mut board: SudokuBoard = SudokuBoard::new();
     board.puzzle = [
         [0, 0, 4, 0, 0, 0, 6, 0, 0],
@@ -702,7 +653,7 @@ pub fn test_mid_row_00() {
 }
 
 #[test]
-fn test_bot_row_00() {
+fn test_bot_row_puzzle_access() {
     let mut board: SudokuBoard = SudokuBoard::new();
     board.puzzle = [
         [0, 0, 4, 0, 0, 0, 6, 0, 0],
@@ -723,133 +674,7 @@ fn test_bot_row_00() {
 }
 
 #[test]
-fn test_top_row_11() {
-    let mut board: SudokuBoard = SudokuBoard::new();
-    board.puzzle = [
-        [0, 0, 4, 0, 0, 0, 6, 0, 0],
-        [2, 7, 0, 0, 0, 0, 0, 9, 0],
-        [0, 0, 0, 2, 8, 0, 0, 0, 0],
-        [0, 0, 6, 0, 9, 0, 1, 7, 0],
-        [4, 0, 0, 0, 0, 0, 0, 0, 0],
-        [0, 0, 0, 0, 7, 2, 0, 0, 4],
-        [0, 8, 0, 3, 0, 4, 0, 0, 0],
-        [9, 5, 0, 0, 0, 0, 0, 8, 0],
-        [0, 0, 0, 0, 1, 0, 0, 0, 0],
-    ];
-
-    let test_row = SudokuBoard::get_puzzle_row(&board, (1, 1), RowGroup::RowTop);
-    assert_eq!(test_row.0, 0);
-    assert_eq!(test_row.1, 9);
-    assert_eq!(test_row.2, 0);
-}
-
-#[test]
-fn test_mid_row_11() {
-    let mut board: SudokuBoard = SudokuBoard::new();
-    board.puzzle = [
-        [0, 0, 4, 0, 0, 0, 6, 0, 0],
-        [2, 7, 0, 0, 0, 0, 0, 9, 0],
-        [0, 0, 0, 2, 8, 0, 0, 0, 0],
-        [0, 0, 6, 0, 9, 0, 1, 7, 0],
-        [4, 0, 0, 0, 5, 0, 0, 0, 0],
-        [0, 0, 0, 0, 7, 2, 0, 0, 4],
-        [0, 8, 0, 3, 0, 4, 0, 0, 0],
-        [9, 5, 0, 0, 0, 0, 0, 8, 0],
-        [0, 0, 0, 0, 1, 0, 0, 0, 0],
-    ];
-
-    let test_row = SudokuBoard::get_puzzle_row(&board, (1, 1), RowGroup::RowMiddle);
-    assert_eq!(test_row.0, 0);
-    assert_eq!(test_row.1, 5);
-    assert_eq!(test_row.2, 0);
-}
-
-#[test]
-fn test_bot_row_11() {
-    let mut board: SudokuBoard = SudokuBoard::new();
-    board.puzzle = [
-        [0, 0, 4, 0, 0, 0, 6, 0, 0],
-        [2, 7, 0, 0, 0, 0, 0, 9, 0],
-        [1, 2, 3, 2, 8, 0, 0, 0, 0],
-        [0, 0, 6, 0, 9, 0, 1, 7, 0],
-        [4, 0, 0, 0, 0, 0, 0, 0, 0],
-        [0, 0, 0, 0, 7, 2, 0, 0, 4],
-        [0, 8, 0, 3, 0, 4, 0, 0, 0],
-        [9, 5, 0, 0, 0, 0, 0, 8, 0],
-        [0, 0, 0, 0, 1, 0, 0, 0, 0],
-    ];
-
-    let test_row = SudokuBoard::get_puzzle_row(&board, (1, 1), RowGroup::RowBottom);
-    assert_eq!(test_row.0, 0);
-    assert_eq!(test_row.1, 7);
-    assert_eq!(test_row.2, 2);
-}
-
-#[test]
-fn test_top_row_22() {
-    let mut board: SudokuBoard = SudokuBoard::new();
-    board.puzzle = [
-        [0, 0, 4, 0, 0, 0, 6, 0, 0],
-        [2, 7, 0, 0, 0, 0, 0, 9, 0],
-        [0, 0, 0, 2, 8, 0, 0, 0, 0],
-        [0, 0, 6, 0, 9, 0, 1, 7, 0],
-        [4, 0, 0, 0, 0, 0, 0, 0, 0],
-        [0, 0, 0, 0, 7, 2, 0, 0, 4],
-        [0, 8, 0, 3, 0, 4, 1, 2, 3],
-        [9, 5, 0, 0, 0, 0, 0, 8, 0],
-        [0, 0, 0, 0, 1, 0, 0, 0, 0],
-    ];
-
-    let test_row = SudokuBoard::get_puzzle_row(&board, (2, 2), RowGroup::RowTop);
-    assert_eq!(test_row.0, 1);
-    assert_eq!(test_row.1, 2);
-    assert_eq!(test_row.2, 3);
-}
-
-#[test]
-fn test_mid_row_22() {
-    let mut board = SudokuBoard::new();
-    board.puzzle = [
-        [0, 0, 4, 0, 0, 0, 6, 0, 0],
-        [2, 7, 0, 0, 0, 0, 0, 9, 0],
-        [0, 0, 0, 2, 8, 0, 0, 0, 0],
-        [0, 0, 6, 0, 9, 0, 1, 7, 0],
-        [4, 0, 0, 0, 5, 0, 0, 0, 0],
-        [0, 0, 0, 0, 7, 2, 0, 0, 4],
-        [0, 8, 0, 3, 0, 4, 0, 0, 0],
-        [9, 5, 0, 0, 0, 0, 0, 8, 0],
-        [0, 0, 0, 0, 1, 0, 0, 0, 0],
-    ];
-
-    let test_row = SudokuBoard::get_puzzle_row(&board, (2, 2), RowGroup::RowMiddle);
-    assert_eq!(test_row.0, 0);
-    assert_eq!(test_row.1, 8);
-    assert_eq!(test_row.2, 0);
-}
-
-#[test]
-fn test_bot_row_22() {
-    let mut board: SudokuBoard = SudokuBoard::new();
-    board.puzzle = [
-        [0, 0, 4, 0, 0, 0, 6, 0, 0],
-        [2, 7, 0, 0, 0, 0, 0, 9, 0],
-        [1, 2, 3, 2, 8, 0, 0, 0, 0],
-        [0, 0, 6, 0, 9, 0, 1, 7, 0],
-        [4, 0, 0, 0, 0, 0, 0, 0, 0],
-        [0, 0, 0, 0, 7, 2, 0, 0, 4],
-        [0, 8, 0, 3, 0, 4, 0, 0, 0],
-        [9, 5, 0, 0, 0, 0, 0, 8, 0],
-        [0, 0, 0, 0, 1, 0, 0, 5, 0],
-    ];
-
-    let test_row = SudokuBoard::get_puzzle_row(&board, (2, 2), RowGroup::RowBottom);
-    assert_eq!(test_row.0, 0);
-    assert_eq!(test_row.1, 5);
-    assert_eq!(test_row.2, 0);
-}
-
-#[test]
-fn test_top_row_00_solution_access() {
+fn test_top_row_solution_access() {
     let mut board: SudokuBoard = SudokuBoard::new();
     board.puzzle = [
         [0, 0, 4, 0, 0, 0, 6, 0, 0],
@@ -881,7 +706,7 @@ fn test_top_row_00_solution_access() {
 }
 
 #[test]
-fn test_left_col_00_solution_access() {
+fn test_left_col_solution_access() {
     let mut board: SudokuBoard = SudokuBoard::new();
     board.puzzle = [
         [0, 0, 4, 0, 0, 0, 6, 0, 0],
@@ -936,4 +761,119 @@ fn test_removal_from_cell() {
     assert_eq!(board.possible_solutions[0][0].contains(&3), true);
     assert_eq!(board.possible_solutions[0][0].contains(&5), true);
     assert_eq!(board.possible_solutions[0][0].contains(&8), true);
+}
+
+#[test]
+pub fn valid_puzzle() {
+    let board: SudokuBoard = SudokuBoard::from_puzzle([
+        [4, 3, 6, 8, 1, 7, 9, 2, 5],
+        [7, 1, 9, 2, 4, 5, 8, 6, 3],
+        [8, 2, 5, 6, 3, 9, 1, 7, 4],
+        [6, 5, 3, 4, 9, 8, 2, 1, 7],
+        [2, 7, 1, 5, 6, 3, 4, 8, 9],
+        [9, 8, 4, 1, 7, 2, 5, 3, 6],
+        [1, 6, 2, 7, 5, 4, 3, 9, 8],
+        [3, 4, 8, 9, 2, 6, 7, 5, 1],
+        [5, 9, 7, 3, 8, 1, 6, 4, 2],
+    ]);
+
+    assert_eq!(SudokuBoard::validate_board(&board), true);
+}
+
+#[test]
+pub fn invalid_puzzle() {
+    let board: SudokuBoard = SudokuBoard::from_puzzle([
+        [4, 3, 6, 8, 1, 7, 9, 2, 5],
+        [7, 1, 6, 2, 4, 5, 8, 6, 3],
+        [8, 2, 5, 6, 3, 9, 1, 7, 4],
+        [6, 5, 3, 4, 9, 8, 2, 1, 7],
+        [2, 7, 1, 5, 6, 3, 4, 8, 9],
+        [9, 8, 4, 1, 7, 2, 5, 3, 6],
+        [1, 6, 2, 7, 5, 4, 3, 9, 8],
+        [3, 4, 8, 9, 2, 6, 7, 5, 1],
+        [5, 9, 7, 3, 8, 1, 6, 4, 2],
+    ]);
+
+    assert_eq!(SudokuBoard::validate_board(&board), false);
+}
+
+#[test]
+pub fn solve_expert() {
+    let mut s_board = SudokuBoard::from_puzzle([
+        [0, 3, 0, 8, 0, 7, 0, 0, 5],
+        [0, 0, 0, 0, 0, 5, 0, 0, 3],
+        [0, 0, 0, 6, 0, 0, 1, 0, 0],
+        [6, 0, 0, 4, 0, 0, 2, 0, 0],
+        [2, 0, 0, 0, 0, 0, 4, 8, 9],
+        [0, 8, 0, 0, 0, 0, 0, 3, 0],
+        [0, 0, 2, 7, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 6, 0, 0, 0],
+        [0, 9, 7, 0, 0, 0, 0, 4, 2],
+    ]);
+    SudokuBoard::solve_deterministic(&mut s_board);
+    if SudokuBoard::populated(&s_board) && SudokuBoard::validate_board(&s_board) {
+    } else {
+        for i in 1..10 {
+            let attempted_puzzle = SudokuBoard::solve_greedy(&s_board, i, 3 as usize);
+            if SudokuBoard::populated(&attempted_puzzle)
+                && SudokuBoard::validate_board(&attempted_puzzle)
+            {
+                assert_eq!(true, true);
+            }
+        }
+    }
+}
+
+#[test]
+pub fn solve_medium() {
+    let mut s_board = SudokuBoard::from_puzzle([
+        [0, 1, 0, 0, 0, 0, 0, 0, 0],
+        [0, 2, 0, 0, 0, 0, 0, 8, 0],
+        [3, 4, 6, 0, 0, 1, 0, 0, 7],
+        [0, 0, 2, 0, 3, 0, 0, 0, 0],
+        [4, 0, 3, 0, 0, 0, 7, 0, 1],
+        [6, 7, 0, 1, 0, 0, 9, 0, 0],
+        [0, 0, 0, 7, 6, 0, 0, 0, 0],
+        [0, 0, 0, 8, 0, 0, 0, 6, 3],
+        [0, 0, 0, 2, 0, 0, 8, 0, 0],
+    ]);
+    SudokuBoard::solve_deterministic(&mut s_board);
+    if SudokuBoard::populated(&s_board) && SudokuBoard::validate_board(&s_board) {
+    } else {
+        for i in 1..10 {
+            let attempted_puzzle = SudokuBoard::solve_greedy(&s_board, i, 3 as usize);
+            if SudokuBoard::populated(&attempted_puzzle)
+                && SudokuBoard::validate_board(&attempted_puzzle)
+            {
+                assert_eq!(true, true);
+            }
+        }
+    }
+}
+
+#[test]
+pub fn solve_easy() {
+    let mut s_board = SudokuBoard::from_puzzle([
+        [0, 6, 0, 0, 3, 0, 8, 7, 0],
+        [0, 0, 0, 2, 0, 0, 1, 4, 3],
+        [0, 1, 7, 0, 5, 8, 0, 0, 0],
+        [0, 7, 0, 0, 0, 1, 0, 2, 8],
+        [9, 5, 4, 0, 8, 0, 0, 0, 0],
+        [8, 0, 0, 6, 0, 7, 3, 0, 4],
+        [0, 4, 0, 9, 0, 0, 2, 8, 1],
+        [0, 0, 9, 0, 1, 4, 0, 0, 7],
+        [1, 0, 6, 7, 0, 0, 4, 0, 0],
+    ]);
+    SudokuBoard::solve_deterministic(&mut s_board);
+    if SudokuBoard::populated(&s_board) && SudokuBoard::validate_board(&s_board) {
+    } else {
+        for i in 1..10 {
+            let attempted_puzzle = SudokuBoard::solve_greedy(&s_board, i, 3 as usize);
+            if SudokuBoard::populated(&attempted_puzzle)
+                && SudokuBoard::validate_board(&attempted_puzzle)
+            {
+                assert_eq!(true, true);
+            }
+        }
+    }
 }
