@@ -63,11 +63,11 @@ impl SudokuBoard {
             (box_coord.1 * 3) as usize,
         );
         let x = natural_boundaries.0 + row_offset;
-        return (
+        (
             board.puzzle[x][natural_boundaries.1],
             board.puzzle[x][natural_boundaries.1 + 1],
             board.puzzle[x][natural_boundaries.1 + 2],
-        );
+        )
     }
 
     pub fn get_solution_row(&self, box_coord: (i32, i32), row: RowGroup) -> Vec<&Vec<i32>> {
@@ -116,7 +116,7 @@ impl SudokuBoard {
         if row < 3 {
             row_boundary = 0;
         }
-        if row >= 3 && row < 6 {
+        if (3..6).contains(&row) {
             row_boundary = 3;
         }
         if row >= 6 {
@@ -125,13 +125,13 @@ impl SudokuBoard {
         if col < 3 {
             col_boundary = 0;
         }
-        if col >= 3 && col < 6 {
+        if (3..6).contains(&col) {
             col_boundary = 3;
         }
         if col >= 6 {
             col_boundary = 6;
         }
-        return (row_boundary, col_boundary);
+        (row_boundary, col_boundary)
     }
 
     pub fn print_puzzle(puzzle: &[[i32; 9]; 9]) {
@@ -164,7 +164,7 @@ impl SudokuBoard {
         let mut counter = 0;
         while counter < 25 {
             print!("-");
-            counter = counter + 1;
+            counter += 1;
         }
         println!();
     }
@@ -196,7 +196,7 @@ impl SudokuBoard {
         values.sort_unstable();
         values.dedup();
 
-        return values;
+        values
     }
 
     pub fn get_inverse_values(values: Vec<i32>) -> Vec<i32> {
@@ -213,7 +213,7 @@ impl SudokuBoard {
                 ret_values.push(i);
             }
         }
-        return ret_values;
+        ret_values
     }
 
     pub fn get_box_values(
@@ -230,7 +230,7 @@ impl SudokuBoard {
             for i in 0..3 {
                 for j in 0..3 {
                     let box_vals = &possible_values[i + xy_boundary.0][j + xy_boundary.1];
-                    if box_vals.contains(&elem)
+                    if box_vals.contains(elem)
                         && !(i + xy_boundary.0 == row && j + xy_boundary.1 == col)
                     {
                         valid_value = false;
@@ -268,38 +268,37 @@ impl SudokuBoard {
     }
 
     pub fn solve_deterministic(s_board: &mut SudokuBoard) {
-        let mut total_passes = 0;
         s_board.needs_solving = true;
         while s_board.needs_solving {
             s_board.needs_solving = false;
-            s_board.possible_solutions = SudokuBoard::calc_possible_solutions(&s_board);
+            s_board.possible_solutions = SudokuBoard::calc_possible_solutions(s_board);
             let mut removable_vals: Vec<(usize, usize, i32)> = Default::default();
             for cube_x in 0..3 {
                 for cube_y in 0..3 {
                     let top_row =
-                        SudokuBoard::get_solution_row(&s_board, (cube_x, cube_y), RowGroup::RowTop);
+                        SudokuBoard::get_solution_row(s_board, (cube_x, cube_y), RowGroup::RowTop);
                     let middle_row = SudokuBoard::get_solution_row(
-                        &s_board,
+                        s_board,
                         (cube_x, cube_y),
                         RowGroup::RowMiddle,
                     );
                     let bottom_row = SudokuBoard::get_solution_row(
-                        &s_board,
+                        s_board,
                         (cube_x, cube_y),
                         RowGroup::RowBottom,
                     );
                     let left_col = SudokuBoard::get_solution_col(
-                        &s_board,
+                        s_board,
                         (cube_x, cube_y),
                         ColGroup::ColLeft,
                     );
                     let mid_col = SudokuBoard::get_solution_col(
-                        &s_board,
+                        s_board,
                         (cube_x, cube_y),
                         ColGroup::ColMiddle,
                     );
                     let right_col = SudokuBoard::get_solution_col(
-                        &s_board,
+                        s_board,
                         (cube_x, cube_y),
                         ColGroup::ColRight,
                     );
@@ -469,7 +468,7 @@ impl SudokuBoard {
             for i in 0..removable_vals.len() {
                 s_board.possible_solutions[removable_vals[i].0][removable_vals[i].1] =
                     SudokuBoard::remove_possible_value_from_cell(
-                        &s_board,
+                        s_board,
                         removable_vals[i].2,
                         removable_vals[i].0,
                         removable_vals[i].1,
@@ -493,9 +492,6 @@ impl SudokuBoard {
                     }
                 }
             }
-            if s_board.needs_solving {
-                total_passes = total_passes + 1;
-            }
         }
     }
 
@@ -518,7 +514,7 @@ impl SudokuBoard {
                 }
             }
         }
-        return s_board.clone();
+        s_board.clone()
     }
 
     pub fn populated(s_board: &SudokuBoard) -> bool {
@@ -527,13 +523,13 @@ impl SudokuBoard {
                 return false;
             }
         }
-        return true;
+        true
     }
 
     pub fn validate_board(board: &SudokuBoard) -> bool {
-        return SudokuBoard::validate_rows(board)
+        SudokuBoard::validate_rows(board)
             && SudokuBoard::validate_columns(board)
-            && SudokuBoard::validate_boxes(board);
+            && SudokuBoard::validate_boxes(board)
     }
 
     fn validate_rows(board: &SudokuBoard) -> bool {
@@ -814,7 +810,7 @@ pub fn solve_expert() {
     if SudokuBoard::populated(&s_board) && SudokuBoard::validate_board(&s_board) {
     } else {
         for i in 1..10 {
-            let attempted_puzzle = SudokuBoard::solve_greedy(&s_board, i, 3 as usize);
+            let attempted_puzzle = SudokuBoard::solve_greedy(&s_board, i, 3_usize);
             if SudokuBoard::populated(&attempted_puzzle)
                 && SudokuBoard::validate_board(&attempted_puzzle)
             {
@@ -841,7 +837,7 @@ pub fn solve_medium() {
     if SudokuBoard::populated(&s_board) && SudokuBoard::validate_board(&s_board) {
     } else {
         for i in 1..10 {
-            let attempted_puzzle = SudokuBoard::solve_greedy(&s_board, i, 3 as usize);
+            let attempted_puzzle = SudokuBoard::solve_greedy(&s_board, i, 3_usize);
             if SudokuBoard::populated(&attempted_puzzle)
                 && SudokuBoard::validate_board(&attempted_puzzle)
             {
@@ -868,7 +864,7 @@ pub fn solve_easy() {
     if SudokuBoard::populated(&s_board) && SudokuBoard::validate_board(&s_board) {
     } else {
         for i in 1..10 {
-            let attempted_puzzle = SudokuBoard::solve_greedy(&s_board, i, 3 as usize);
+            let attempted_puzzle = SudokuBoard::solve_greedy(&s_board, i, 3_usize);
             if SudokuBoard::populated(&attempted_puzzle)
                 && SudokuBoard::validate_board(&attempted_puzzle)
             {

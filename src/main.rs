@@ -20,7 +20,7 @@ fn main() {
         println!("\n\nCompleted\n\n");
     } else {
         for i in 1..10 {
-            let attempted_puzzle = sudoku::SudokuBoard::solve_greedy(&s_board, i, 3 as usize);
+            let attempted_puzzle = sudoku::SudokuBoard::solve_greedy(&s_board, i, 3_usize);
             if sudoku::SudokuBoard::populated(&attempted_puzzle)
                 && sudoku::SudokuBoard::validate_board(&attempted_puzzle)
             {
